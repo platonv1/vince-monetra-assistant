@@ -6,10 +6,14 @@ contract. Retrieval internals (scores, matched keywords,
 resolution_method) never cross into the returned string.
 """
 
+import logging
+
 from llm.provider import generate_response
 from rag.loader import load_documents
 from rag.prompt import build_prompt
 from rag.retriever import retrieve
+
+logger = logging.getLogger(__name__)
 
 FALLBACK_MESSAGE = (
     "I don't have enough information in Vince's professional profile to answer that question."
@@ -57,5 +61,6 @@ def answer(question: str, history: list[tuple[str, str]]) -> str:
         # (network errors, rate limits, auth failures, provider outages).
         # answer()'s contract is to always return a string, and the raw
         # exception could contain provider-internal detail that shouldn't
-        # reach a user-facing response.
+        # reach a user-facing response — so it's logged server-side only.
+        logger.exception("LLM provider call failed")
         return LLM_ERROR_MESSAGE

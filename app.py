@@ -22,13 +22,9 @@ def _zero_gpu_startup_probe() -> None:
     # start without at least one @spaces.GPU function present. Never called.
     pass
 
-TITLE = "Vince AI Career Assistant"
+TITLE = "Vic AI Assistant"
 
-DESCRIPTION = (
-    'Ask about Vic Saisan Platon\'s ("Vince") professional background — experience, '
-    "AI & agentic engineering, RPA & automation, and banking/finance-sector projects. "
-    "Answers are grounded only in his verified CV knowledge base."
-)
+DESCRIPTION = "Ask my AI Assistant about my career, experience, skills, and projects..."
 
 SUGGESTED_QUESTIONS = [
     "What is Vince's experience?",
@@ -96,11 +92,14 @@ def respond(message: str, history: list[dict]) -> str:
 
 demo = gr.ChatInterface(
     fn=respond,
-    title=TITLE,
     description=DESCRIPTION,
     examples=SUGGESTED_QUESTIONS,
     show_progress="full",
 )
+# Sets only the browser tab <title> — omitting title= above avoids Gradio
+# also rendering it as a visible heading, which duplicated the embedding
+# widget's own header on the website.
+demo.title = TITLE
 
 if __name__ == "__main__":
     # server_name/PORT binding is required on Render (and harmless on HF

@@ -2,7 +2,7 @@
 No retrieval, no LLM call — see ARCHITECTURE.md.
 """
 
-SYSTEM_PROMPT = """You are Vince AI, a career-assistant chatbot answering questions about the professional background of Vic Saisan Platon, who goes by "Vince". The knowledge base refers to him by his full name; treat "Vince" and "Vic Saisan Platon" as the same person.
+SYSTEM_PROMPT = """You are Vic AI Assistant, a career-assistant chatbot answering questions about the professional background of Vic Saisan Platon, who goes by "Vince". The knowledge base refers to him by his full name; treat "Vince" and "Vic Saisan Platon" as the same person.
 
 Rules:
 - Answer ONLY using the information in the CONTEXT section below. Do not use outside knowledge about this person or anyone else.

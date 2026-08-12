@@ -15,9 +15,11 @@ Gradio serves a local URL, typically `http://127.0.0.1:7860`.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `LLM_PROVIDER` | Selects which LLM backend `llm/provider.py` calls | `claude` (only backend implemented for V1) |
-| `LLM_API_KEY` | API key for the selected provider (an Anthropic API key, since the provider is Claude) | (none — must be set, never committed) |
+| `LLM_PROVIDER` | Selects which LLM backend `llm/provider.py` calls — `claude` or `gemini` | `claude` |
+| `LLM_API_KEY` | Anthropic API key. Only read on the `claude` path — ignored entirely when `LLM_PROVIDER=gemini` | (none — must be set when using `claude`, never committed) |
 | `CLAUDE_MODEL` | Claude model ID `llm/provider.py` calls | `claude-opus-5` |
+| `GEMINI_API_KEY` | Google AI Studio API key. Only read on the `gemini` path — a separate variable from `LLM_API_KEY`, not a fallback for it | (none — must be set when using `gemini`, never committed) |
+| `GEMINI_MODEL` | Gemini model ID `llm/provider.py` calls | `gemini-flash-latest` |
 | `MIN_RETRIEVAL_SCORE` | Confidence threshold for retrieval | `3` (tuned, see RAG_DESIGN.md) |
 | `MAX_RESULTS` | Max documents returned per query | `3` (tuned, see RAG_DESIGN.md) |
 
@@ -27,8 +29,11 @@ Keep `.env` out of source control; `.env.example` documents the variables above 
 
 - SDK: **Gradio**.
 - Python version matched to local development (3.12).
-- Secrets (`LLM_API_KEY`, `LLM_PROVIDER`) configured via Space → Settings → Secrets — never placed in source code.
-- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`.
+- On Space → Settings → **Variables and secrets**:
+  - Secret: `LLM_API_KEY` (Claude) or `GEMINI_API_KEY` (Gemini) — whichever matches the chosen provider. API keys always go in Secrets, never Variables.
+  - Variable: `LLM_PROVIDER` set to `claude` or `gemini` — not sensitive, so Variables (not Secrets) is the right place for it.
+  - Never placed in source code either way.
+- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`, `google-genai`.
 - No local filesystem assumptions beyond reading `knowledge/*.md`, which ships with the repo — no writes to disk at runtime.
 
 ## Website embedding

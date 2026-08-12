@@ -1,0 +1,240 @@
+# DEPLOYMENT — Vince AI Career Assistant
+
+## Local development (macOS)
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Gradio serves a local URL, typically `http://127.0.0.1:7860`.
+
+## Environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `LLM_PROVIDER` | Selects which LLM backend `llm/provider.py` calls | `claude` (only backend implemented for V1) |
+| `LLM_API_KEY` | API key for the selected provider (an Anthropic API key, since the provider is Claude) | (none — must be set, never committed) |
+| `CLAUDE_MODEL` | Claude model ID `llm/provider.py` calls | `claude-opus-5` |
+| `MIN_RETRIEVAL_SCORE` | Confidence threshold for retrieval | `3` (tuned, see RAG_DESIGN.md) |
+| `MAX_RESULTS` | Max documents returned per query | `3` (tuned, see RAG_DESIGN.md) |
+
+Keep `.env` out of source control; `.env.example` documents the variables above with empty values.
+
+## Hugging Face Spaces
+
+- SDK: **Gradio**.
+- Python version matched to local development (3.12).
+- Secrets (`LLM_API_KEY`, `LLM_PROVIDER`) configured via Space → Settings → Secrets — never placed in source code.
+- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`.
+- No local filesystem assumptions beyond reading `knowledge/*.md`, which ships with the repo — no writes to disk at runtime.
+
+## Website embedding
+
+`vicsaisanplaton.info` embeds the Hugging Face Space via a floating chat button (bottom-right corner). The website stays a thin shell — no RAG logic is duplicated client-side; all retrieval and generation happens in the Hugging Face-hosted backend. This section is about the **website's** codebase (outside this repo), not `app.py` — `app.py` only needs to already be a working, tested Space (see the checklist above) before you start.
+
+### Prerequisites
+
+- The Hugging Face Space is deployed and reachable at its public URL, e.g. `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space`.
+- The Space has been manually tested end-to-end (all 4 canonical questions, hallucination probes, prompt injection probes — see `TESTING.md`'s manual QA checklist) so you're not debugging the widget and the backend at the same time.
+- The Space is **public** (not gated/private) — a private Space returns an authentication wall inside the iframe instead of the chat UI.
+
+### Step 1 — Get the Space's direct embed URL
+
+Hugging Face Spaces are reachable at two URLs:
+
+- `https://huggingface.co/spaces/YOUR_USERNAME/vince-ai-career-assistant` — the Hugging Face-hosted page (has HF's own header/chrome around it — not what you want to embed).
+- `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` — the **direct** app URL, with no HF chrome. This is the one to embed.
+
+Find the exact direct URL on the Space page: **Embed this Space** (usually near the top-right of the Space page) → copy the "Direct URL." Confirm it loads the chat UI cleanly (no Hugging Face header) by opening it in a plain browser tab first.
+
+### Step 2 — Choose an embedding approach
+
+**Option A — Plain iframe (simplest; good for an initial test embed)**
+
+Paste this directly into the website's HTML, wherever the chatbot should appear on the page:
+
+```html
+<iframe
+  src="https://YOUR_USERNAME-vince-ai-career-assistant.hf.space"
+  title="Vince AI Career Assistant"
+  style="width: 100%; height: 600px; border: none; border-radius: 12px;"
+  loading="lazy"
+></iframe>
+```
+
+This is a static, inline embed — the chatbot occupies a fixed block on the page, always visible. No JavaScript required. Use this to confirm the embed itself works end-to-end before building the floating widget.
+
+**Option B — Floating chat widget (recommended for the final portfolio experience)**
+
+A fixed-position button in the bottom-right corner that opens/closes a panel containing the same iframe. This is a self-contained snippet — plain HTML/CSS/JS, no build step, no framework dependency — so it drops into any static site, WordPress custom-HTML block, or template partial. Paste it once, near the end of `<body>` (so it renders after the rest of the page):
+
+```html
+<!-- Vince AI floating chat widget -->
+<button id="vince-ai-toggle" aria-label="Open Vince AI chat" aria-expanded="false">💬</button>
+
+<div id="vince-ai-panel" aria-hidden="true">
+  <div id="vince-ai-panel-header">
+    <span>Vince AI</span>
+    <button id="vince-ai-close" aria-label="Close chat">✕</button>
+  </div>
+  <iframe
+    id="vince-ai-iframe"
+    src="about:blank"
+    data-src="https://YOUR_USERNAME-vince-ai-career-assistant.hf.space"
+    title="Vince AI Career Assistant"
+    loading="lazy"
+  ></iframe>
+</div>
+
+<style>
+  #vince-ai-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: #1a1a2e;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    z-index: 9999;
+    transition: transform 0.2s ease;
+  }
+  #vince-ai-toggle:hover {
+    transform: scale(1.08);
+  }
+
+  #vince-ai-panel {
+    position: fixed;
+    bottom: 96px;
+    right: 24px;
+    width: 380px;
+    height: 600px;
+    max-height: calc(100vh - 120px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  #vince-ai-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  #vince-ai-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #1a1a2e;
+    color: #fff;
+    font-weight: 600;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  #vince-ai-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  #vince-ai-iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+  }
+
+  /* Full-screen on small viewports so the widget doesn't get cramped */
+  @media (max-width: 480px) {
+    #vince-ai-panel {
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+    }
+    #vince-ai-toggle {
+      bottom: 16px;
+      right: 16px;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    var toggle = document.getElementById("vince-ai-toggle");
+    var panel = document.getElementById("vince-ai-panel");
+    var closeBtn = document.getElementById("vince-ai-close");
+    var iframe = document.getElementById("vince-ai-iframe");
+    var loaded = false;
+
+    function openPanel() {
+      // Defer loading the iframe (and therefore the HF Space cold start)
+      // until the user actually opens the widget, not on page load.
+      if (!loaded) {
+        iframe.src = iframe.getAttribute("data-src");
+        loaded = true;
+      }
+      panel.classList.add("open");
+      panel.setAttribute("aria-hidden", "false");
+      toggle.setAttribute("aria-expanded", "true");
+    }
+
+    function closePanel() {
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+
+    toggle.addEventListener("click", function () {
+      panel.classList.contains("open") ? closePanel() : openPanel();
+    });
+    closeBtn.addEventListener("click", closePanel);
+  })();
+</script>
+```
+
+Customization notes:
+
+- Replace `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` in `data-src` with the real direct URL from Step 1.
+- Colors (`#1a1a2e`), size (`380px` × `600px`), and position (`bottom: 24px; right: 24px;`) are safe to change freely — they're isolated to this snippet's own IDs (`vince-ai-*`), so they won't collide with the rest of the site's CSS.
+- The 💬 emoji button is a placeholder — swap it for an `<img>`/SVG icon if the site has its own iconography.
+- The iframe's `src` is intentionally left as `about:blank` until first open (`data-src` holds the real URL) — this avoids waking the Space (and paying its cold-start latency) for every visitor who never opens the widget.
+
+### Step 3 — Verify on the live website
+
+- Load the page and confirm the button appears bottom-right, doesn't overlap existing content (nav bars, cookie banners, other floating widgets), and its `z-index` wins.
+- Click to open: confirm the panel animates in smoothly and the chat UI loads (first open will be slower if the Space had gone to sleep — Hugging Face free-tier Spaces sleep after inactivity).
+- Send a real question end-to-end from the website (not just the raw `.hf.space` URL) to confirm the iframe embed itself isn't blocked.
+- Resize to a mobile viewport (or test on an actual phone) and confirm the full-screen behavior from the `@media` block kicks in and the chat remains usable.
+- Confirm closing the panel and reopening it doesn't reset conversation history mid-session (Gradio keeps it in the iframe's own page state, so it persists as long as the iframe isn't reloaded).
+
+### Troubleshooting
+
+- **Iframe shows blank / refuses to load**: confirm the Space is public, not gated behind HF login, and that you're using the direct `.hf.space` URL (not the `huggingface.co/spaces/...` page URL, which HF's own site does not intend to be iframed).
+- **Long first-load delay**: expected on Hugging Face's free CPU tier — the Space sleeps after inactivity and needs to "wake up" on the first request. Upgrading to a persistent/paid Space tier removes this if it's a problem for real visitors.
+- **Widget appears behind other page elements**: raise `z-index` on `#vince-ai-toggle` / `#vince-ai-panel` above whatever else on the page is competing for stacking order.
+
+## Pre-launch checklist
+
+- All automated tests pass (`pytest`).
+- Manual QA checklist in `TESTING.md` completed against the live Hugging Face Space.
+- Secrets confirmed present in Space Settings, absent from git history.
+- Website embed tested on both mobile and desktop.

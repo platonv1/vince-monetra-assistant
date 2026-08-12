@@ -4,6 +4,8 @@ Only calls chat.answer() — no RAG logic, no direct rag.* imports. See
 CLAUDE.md / ARCHITECTURE.md's boundary contract.
 """
 
+import os
+
 import gradio as gr
 import spaces
 from dotenv import load_dotenv
@@ -101,4 +103,6 @@ demo = gr.ChatInterface(
 )
 
 if __name__ == "__main__":
-    demo.launch()
+    # server_name/PORT binding is required on Render (and harmless on HF
+    # Spaces, which doesn't set PORT and expects the 7860 default anyway).
+    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))

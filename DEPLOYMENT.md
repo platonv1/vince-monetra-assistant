@@ -27,33 +27,52 @@ Keep `.env` out of source control; `.env.example` documents the variables above 
 
 ## Hugging Face Spaces
 
+**Note (2026):** Hugging Face now requires a **Pro subscription** to create a Gradio or Docker Space on a free account — a policy change that landed mid-2026. Free accounts are limited to a Space auto-assigned **ZeroGPU** hardware (if they can create a compute Space at all; this has been observed to vary/tighten per-account). `app.py` includes a no-op `@spaces.GPU`-decorated function (`_zero_gpu_startup_probe`) purely so the app can boot on ZeroGPU hardware, which otherwise refuses to start without one — the app does no actual GPU work. If Space creation is blocked entirely on a given account, use **Render** below instead.
+
 - SDK: **Gradio**.
 - Python version matched to local development (3.12).
 - On Space → Settings → **Variables and secrets**:
   - Secret: `LLM_API_KEY` (Claude) or `GEMINI_API_KEY` (Gemini) — whichever matches the chosen provider. API keys always go in Secrets, never Variables.
   - Variable: `LLM_PROVIDER` set to `claude` or `gemini` — not sensitive, so Variables (not Secrets) is the right place for it.
   - Never placed in source code either way.
-- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`, `google-genai`.
+- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`, `google-genai`, `spaces` (the last only matters on HF's ZeroGPU runtime — it no-ops everywhere else, including Render).
 - No local filesystem assumptions beyond reading `knowledge/*.md`, which ships with the repo — no writes to disk at runtime.
 
-## Website embedding
+## Render (alternative deployment)
 
-`vicsaisanplaton.info` embeds the Hugging Face Space via a floating chat button (bottom-right corner). The website stays a thin shell — no RAG logic is duplicated client-side; all retrieval and generation happens in the Hugging Face-hosted backend. This section is about the **website's** codebase (outside this repo), not `app.py` — `app.py` only needs to already be a working, tested Space (see the checklist above) before you start.
+Render has a genuine free tier (no credit card required) for hosting a small always-Python web service, unlike HF Spaces' 2026 Pro requirement above. Trade-off: the free instance spins down after ~15 minutes of inactivity and takes 30–50 seconds to wake on the next request — comparable to HF's own free-tier cold-start behavior.
 
 ### Prerequisites
 
-- The Hugging Face Space is deployed and reachable at its public URL, e.g. `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space`.
-- The Space has been manually tested end-to-end (all 4 canonical questions, hallucination probes, prompt injection probes — see `TESTING.md`'s manual QA checklist) so you're not debugging the widget and the backend at the same time.
-- The Space is **public** (not gated/private) — a private Space returns an authentication wall inside the iframe instead of the chat UI.
+- This repo pushed to a GitHub repository Render can read (e.g. `github.com/YOUR_USERNAME/vic-ai-career-assistant`) — Render deploys by connecting to a Git repo, not by direct CLI push.
+- A Render account (render.com) — sign-up isn't something to automate; do this yourself.
 
-### Step 1 — Get the Space's direct embed URL
+### Setup
 
-Hugging Face Spaces are reachable at two URLs:
+1. On Render: **New** → **Web Service** → connect the GitHub repo above.
+2. **Runtime**: Python 3. Set the `PYTHON_VERSION` environment variable to `3.12.x` to match local development if Render's auto-detected default differs.
+3. **Build Command**: `pip install -r requirements.txt`
+4. **Start Command**: `python app.py` — `app.py` binds to `0.0.0.0` and reads Render's `PORT` env var automatically (falls back to `7860` when `PORT` isn't set, e.g. local dev or HF Spaces).
+5. **Instance Type**: Free.
+6. Under **Environment** → add the same variables as the HF Secrets table above (`LLM_PROVIDER`, and `LLM_API_KEY` or `GEMINI_API_KEY` depending on provider) — Render's environment variables are private to the service by default, equivalent to HF's Secrets.
+7. Deploy. Render assigns a public URL like `https://vic-ai-career-assistant.onrender.com`.
 
-- `https://huggingface.co/spaces/YOUR_USERNAME/vince-ai-career-assistant` — the Hugging Face-hosted page (has HF's own header/chrome around it — not what you want to embed).
-- `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` — the **direct** app URL, with no HF chrome. This is the one to embed.
+## Website embedding
 
-Find the exact direct URL on the Space page: **Embed this Space** (usually near the top-right of the Space page) → copy the "Direct URL." Confirm it loads the chat UI cleanly (no Hugging Face header) by opening it in a plain browser tab first.
+`vicsaisanplaton.info` embeds the deployed backend (Hugging Face Space or Render service — whichever is live) via a floating chat button (bottom-right corner). The website stays a thin shell — no RAG logic is duplicated client-side; all retrieval and generation happens in the hosted backend. This section is about the **website's** codebase (outside this repo), not `app.py` — `app.py` only needs to already be a working, tested deployment (see the checklist above) before you start.
+
+### Prerequisites
+
+- The backend (HF Space or Render service) is deployed and reachable at its public URL.
+- It has been manually tested end-to-end (all 4 canonical questions, hallucination probes, prompt injection probes — see `TESTING.md`'s manual QA checklist) so you're not debugging the widget and the backend at the same time.
+- If using HF Spaces, the Space is **public** (not gated/private) — a private Space returns an authentication wall inside the iframe instead of the chat UI. Render service URLs are public by default.
+
+### Step 1 — Get the direct embed URL
+
+- **Render**: the service URL Render assigns (e.g. `https://vic-ai-career-assistant.onrender.com`) is already the direct app URL — no extra step needed.
+- **Hugging Face Spaces**: reachable at two URLs — `https://huggingface.co/spaces/YOUR_USERNAME/vic-ai-career-assistant` (the HF-hosted page, with HF's own header/chrome — not what you want to embed) vs. `https://YOUR_USERNAME-vic-ai-career-assistant.hf.space` (the **direct** app URL, no HF chrome — this is the one to embed). Find it on the Space page under **Embed this Space** → "Direct URL."
+
+Confirm whichever URL you use loads the chat UI cleanly (no host chrome) by opening it in a plain browser tab first.
 
 ### Step 2 — Choose an embedding approach
 
@@ -218,7 +237,7 @@ A fixed-position button in the bottom-right corner that opens/closes a panel con
 
 Customization notes:
 
-- Replace `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` in `data-src` with the real direct URL from Step 1.
+- Replace `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` in `data-src` with the real direct URL from Step 1 — the Render URL works exactly the same way, just swap it in.
 - Colors (`#1a1a2e`), size (`380px` × `600px`), and position (`bottom: 24px; right: 24px;`) are safe to change freely — they're isolated to this snippet's own IDs (`vince-ai-*`), so they won't collide with the rest of the site's CSS.
 - The 💬 emoji button is a placeholder — swap it for an `<img>`/SVG icon if the site has its own iconography.
 - The iframe's `src` is intentionally left as `about:blank` until first open (`data-src` holds the real URL) — this avoids waking the Space (and paying its cold-start latency) for every visitor who never opens the widget.
@@ -226,20 +245,20 @@ Customization notes:
 ### Step 3 — Verify on the live website
 
 - Load the page and confirm the button appears bottom-right, doesn't overlap existing content (nav bars, cookie banners, other floating widgets), and its `z-index` wins.
-- Click to open: confirm the panel animates in smoothly and the chat UI loads (first open will be slower if the Space had gone to sleep — Hugging Face free-tier Spaces sleep after inactivity).
+- Click to open: confirm the panel animates in smoothly and the chat UI loads (first open will be slower if the backend had gone to sleep — both HF free-tier Spaces and Render's free instance sleep after inactivity).
 - Send a real question end-to-end from the website (not just the raw `.hf.space` URL) to confirm the iframe embed itself isn't blocked.
 - Resize to a mobile viewport (or test on an actual phone) and confirm the full-screen behavior from the `@media` block kicks in and the chat remains usable.
 - Confirm closing the panel and reopening it doesn't reset conversation history mid-session (Gradio keeps it in the iframe's own page state, so it persists as long as the iframe isn't reloaded).
 
 ### Troubleshooting
 
-- **Iframe shows blank / refuses to load**: confirm the Space is public, not gated behind HF login, and that you're using the direct `.hf.space` URL (not the `huggingface.co/spaces/...` page URL, which HF's own site does not intend to be iframed).
-- **Long first-load delay**: expected on Hugging Face's free CPU tier — the Space sleeps after inactivity and needs to "wake up" on the first request. Upgrading to a persistent/paid Space tier removes this if it's a problem for real visitors.
+- **Iframe shows blank / refuses to load**: if using HF Spaces, confirm the Space is public, not gated behind HF login, and that you're using the direct `.hf.space` URL (not the `huggingface.co/spaces/...` page URL, which HF's own site does not intend to be iframed).
+- **Long first-load delay**: expected on both HF's free CPU tier and Render's free instance — the backend sleeps after inactivity and needs to "wake up" on the first request. A paid tier on either platform removes this if it's a problem for real visitors.
 - **Widget appears behind other page elements**: raise `z-index` on `#vince-ai-toggle` / `#vince-ai-panel` above whatever else on the page is competing for stacking order.
 
 ## Pre-launch checklist
 
 - All automated tests pass (`pytest`).
-- Manual QA checklist in `TESTING.md` completed against the live Hugging Face Space.
-- Secrets confirmed present in Space Settings, absent from git history.
+- Manual QA checklist in `TESTING.md` completed against the live deployment (HF Space or Render).
+- Secrets confirmed present in the platform's own secret/env store (HF Space Settings or Render Environment), absent from git history.
 - Website embed tested on both mobile and desktop.

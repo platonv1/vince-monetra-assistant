@@ -5,11 +5,20 @@ CLAUDE.md / ARCHITECTURE.md's boundary contract.
 """
 
 import gradio as gr
+import spaces
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import chat
+
+
+@spaces.GPU
+def _zero_gpu_startup_probe() -> None:
+    # This app does no GPU work — the Space's hardware was auto-assigned
+    # ZeroGPU with no CPU-basic option at creation, and ZeroGPU refuses to
+    # start without at least one @spaces.GPU function present. Never called.
+    pass
 
 TITLE = "Vince AI Career Assistant"
 

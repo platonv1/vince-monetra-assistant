@@ -3,3 +3,4 @@ python-dotenv
 pytest
 anthropic
 google-genai
+spaces

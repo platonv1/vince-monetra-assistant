@@ -44,4 +44,4 @@ Do not implement multiple layers in one prompt. Retrieval must be fully tested w
 
 - Scoring weights and confidence threshold: resolved — tuned against real knowledge-base content and the retriever test suite; no change was needed from the initial values.
 - LLM provider: resolved — Claude is the primary/production provider. Gemini is kept as the dev-time alternative via `llm/provider.py`'s `LLM_PROVIDER` env var, satisfying the "must stay swappable" rule above; it is not a second production option.
-- Streaming vs. synchronous LLM responses not yet decided (deferred to the Gradio implementation step).
+- Streaming vs. synchronous LLM responses: resolved — synchronous for V1. `app.py`'s `respond()` and `chat.answer()` return a complete string; streaming was not pursued.

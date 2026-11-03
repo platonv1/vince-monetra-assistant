@@ -85,10 +85,7 @@ Resolved during knowledge-base creation and retriever testing (`tests/test_retri
 - `MAX_RESULTS` raised from 2 to 3 (see Result set) — required for the compound-query test to pass.
 - `last_category` tie-break refined so `experience` doesn't win ties against a more specific category (see Follow-up resolution) — required for the follow-up-after-a-confident-match test to pass.
 
-Still open:
-
-- Streaming vs. synchronous LLM response — deferred to the Gradio implementation step.
-
 Resolved since:
 
-- LLM provider chosen: Claude (`llm/provider.py`, model `claude-opus-5` by default, overridable via `CLAUDE_MODEL`). Affects `llm/provider.py` only, not retrieval.
+- LLM provider chosen: Claude (`llm/provider.py`, model `claude-opus-5` by default, overridable via `CLAUDE_MODEL`). Affects `llm/provider.py` only, not retrieval. Gemini remains available as a dev-time alternative (see CLAUDE.md).
+- Streaming vs. synchronous LLM response — decided: synchronous for V1. `chat.answer()` and `app.py`'s `respond()` return a complete string; no streaming was implemented.

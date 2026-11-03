@@ -80,7 +80,18 @@ def _generate_with_gemini(prompt: dict) -> str:
         ),
     )
 
-    if not response.text:
+    # Extract text parts directly rather than relying on the response.text
+    # convenience accessor, which can raise if a candidate mixes in
+    # non-text parts — mirrors the explicit block-type filtering on the
+    # Claude path above.
+    text = "".join(
+        part.text
+        for candidate in (response.candidates or [])
+        for part in (candidate.content.parts or [])
+        if getattr(part, "text", None)
+    )
+
+    if not text:
         return "I'm not able to answer that."
 
-    return response.text
+    return text

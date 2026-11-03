@@ -62,6 +62,10 @@ def test_multiple_results_each_included_and_labeled():
     assert "[BANKING]" in last_message
 
 
+def test_system_prompt_forbids_echoing_category_labels():
+    assert "[CATEGORY]" in SYSTEM_PROMPT
+
+
 def test_empty_results_raises():
     with pytest.raises(ValueError):
         build_prompt("What is Vince's experience?", [], [])

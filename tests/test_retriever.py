@@ -98,6 +98,42 @@ def test_tie_break_and_truncation_preserve_fixed_category_load_order():
     assert [doc["category"] for doc in result["results"]] == expected
 
 
+def test_score_one_below_threshold_excluded_score_at_threshold_included():
+    below_threshold_doc = {
+        "category": "rpa",
+        "title": "Below threshold",
+        "keywords": ["rpa"],
+        "content": "foo bar",
+    }
+    at_threshold_doc = {
+        "category": "rpa",
+        "title": "At threshold",
+        "keywords": ["rpa"],
+        "content": "foo bar baz",
+    }
+
+    result = retrieve("foo bar baz", [below_threshold_doc, at_threshold_doc])
+
+    titles = [doc["title"] for doc in result["results"]]
+    assert "At threshold" in titles
+    assert "Below threshold" not in titles
+
+
+def test_two_specific_categories_tied_at_top_resolve_by_load_order():
+    docs = [
+        {"category": "experience", "title": "Experience doc", "keywords": ["experience"], "content": "experience"},
+        {"category": "ai", "title": "AI doc", "keywords": ["ai"], "content": "ai"},
+        {"category": "rpa", "title": "RPA doc", "keywords": ["rpa"], "content": "rpa"},
+        {"category": "banking", "title": "Banking doc", "keywords": ["banking"], "content": "banking"},
+    ]
+
+    result = retrieve("ai rpa", docs)
+
+    assert result["resolution_method"] == "matched"
+    # ai and rpa qualify with equal scores; load order (ai before rpa) wins last_category.
+    assert result["last_category"] == "ai"
+
+
 def test_followup_after_confident_match(documents):
     first_turn = retrieve("Tell me about his RPA experience.", documents)
     assert first_turn["resolution_method"] == "matched"

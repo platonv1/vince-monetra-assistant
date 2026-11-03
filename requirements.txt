@@ -1,6 +1,6 @@
-gradio
-python-dotenv
-pytest
-anthropic
-google-genai
-spaces
+gradio==6.22.0
+python-dotenv==1.2.2
+pytest==9.1.1
+anthropic==0.121.0
+google-genai==2.17.0
+spaces==0.51.1

@@ -15,7 +15,7 @@ Gradio serves a local URL, typically `http://127.0.0.1:7860`.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `LLM_PROVIDER` | Selects which LLM backend `llm/provider.py` calls — `claude` or `gemini` | `claude` |
+| `LLM_PROVIDER` | Selects which LLM backend `llm/provider.py` calls — `claude` (production default) or `gemini` (dev-time alternative only, see note below) | `claude` |
 | `LLM_API_KEY` | Anthropic API key. Only read on the `claude` path — ignored entirely when `LLM_PROVIDER=gemini` | (none — must be set when using `claude`, never committed) |
 | `CLAUDE_MODEL` | Claude model ID `llm/provider.py` calls | `claude-opus-5` |
 | `GEMINI_API_KEY` | Google AI Studio API key. Only read on the `gemini` path — a separate variable from `LLM_API_KEY`, not a fallback for it | (none — must be set when using `gemini`, never committed) |
@@ -25,6 +25,8 @@ Gradio serves a local URL, typically `http://127.0.0.1:7860`.
 
 Keep `.env` out of source control; `.env.example` documents the variables above with empty values.
 
+**Claude vs. Gemini:** Claude is the primary, production provider — deployments (HF Spaces, Render) should use `LLM_PROVIDER=claude`. Gemini exists only to keep `llm/provider.py` genuinely swappable per CLAUDE.md's architecture rule and is intended for local development, not production use.
+
 ## Hugging Face Spaces
 
 **Note (2026):** Hugging Face now requires a **Pro subscription** to create a Gradio or Docker Space on a free account — a policy change that landed mid-2026. Free accounts are limited to a Space auto-assigned **ZeroGPU** hardware (if they can create a compute Space at all; this has been observed to vary/tighten per-account). `app.py` includes a no-op `@spaces.GPU`-decorated function (`_zero_gpu_startup_probe`) purely so the app can boot on ZeroGPU hardware, which otherwise refuses to start without one — the app does no actual GPU work. If Space creation is blocked entirely on a given account, use **Render** below instead.
@@ -32,10 +34,10 @@ Keep `.env` out of source control; `.env.example` documents the variables above 
 - SDK: **Gradio**.
 - Python version matched to local development (3.12).
 - On Space → Settings → **Variables and secrets**:
-  - Secret: `LLM_API_KEY` (Claude) or `GEMINI_API_KEY` (Gemini) — whichever matches the chosen provider. API keys always go in Secrets, never Variables.
-  - Variable: `LLM_PROVIDER` set to `claude` or `gemini` — not sensitive, so Variables (not Secrets) is the right place for it.
+  - Secret: `LLM_API_KEY` — the production deployment uses Claude. API keys always go in Secrets, never Variables.
+  - Variable: `LLM_PROVIDER` set to `claude` — not sensitive, so Variables (not Secrets) is the right place for it. (`gemini` is a valid value too, but is for local development only — see the env-var table above.)
   - Never placed in source code either way.
-- `requirements.txt` kept minimal: `gradio`, `python-dotenv`, `anthropic`, `google-genai`, `spaces` (the last only matters on HF's ZeroGPU runtime — it no-ops everywhere else, including Render).
+- `requirements.txt` pins exact versions of: `gradio`, `python-dotenv`, `pytest` (for running the test suite, not production runtime), `anthropic`, `google-genai`, `spaces` (the last only matters on HF's ZeroGPU runtime — it no-ops everywhere else, including Render).
 - No local filesystem assumptions beyond reading `knowledge/*.md`, which ships with the repo — no writes to disk at runtime.
 
 ## Render (alternative deployment)
@@ -44,7 +46,7 @@ Render has a genuine free tier (no credit card required) for hosting a small alw
 
 ### Prerequisites
 
-- This repo pushed to a GitHub repository Render can read (e.g. `github.com/YOUR_USERNAME/vic-ai-career-assistant`) — Render deploys by connecting to a Git repo, not by direct CLI push.
+- This repo pushed to a GitHub repository Render can read (e.g. `github.com/YOUR_USERNAME/vince-monetra-assistant`) — Render deploys by connecting to a Git repo, not by direct CLI push.
 - A Render account (render.com) — sign-up isn't something to automate; do this yourself.
 
 ### Setup
@@ -55,7 +57,7 @@ Render has a genuine free tier (no credit card required) for hosting a small alw
 4. **Start Command**: `python app.py` — `app.py` binds to `0.0.0.0` and reads Render's `PORT` env var automatically (falls back to `7860` when `PORT` isn't set, e.g. local dev or HF Spaces).
 5. **Instance Type**: Free.
 6. Under **Environment** → add the same variables as the HF Secrets table above (`LLM_PROVIDER`, and `LLM_API_KEY` or `GEMINI_API_KEY` depending on provider) — Render's environment variables are private to the service by default, equivalent to HF's Secrets.
-7. Deploy. Render assigns a public URL like `https://vic-ai-career-assistant.onrender.com`.
+7. Deploy. Render assigns a public URL like `https://vince-monetra-assistant.onrender.com`.
 
 ## Website embedding
 
@@ -69,8 +71,8 @@ Render has a genuine free tier (no credit card required) for hosting a small alw
 
 ### Step 1 — Get the direct embed URL
 
-- **Render**: the service URL Render assigns (e.g. `https://vic-ai-career-assistant.onrender.com`) is already the direct app URL — no extra step needed.
-- **Hugging Face Spaces**: reachable at two URLs — `https://huggingface.co/spaces/YOUR_USERNAME/vic-ai-career-assistant` (the HF-hosted page, with HF's own header/chrome — not what you want to embed) vs. `https://YOUR_USERNAME-vic-ai-career-assistant.hf.space` (the **direct** app URL, no HF chrome — this is the one to embed). Find it on the Space page under **Embed this Space** → "Direct URL."
+- **Render**: the service URL Render assigns (e.g. `https://vince-monetra-assistant.onrender.com`) is already the direct app URL — no extra step needed.
+- **Hugging Face Spaces**: reachable at two URLs — `https://huggingface.co/spaces/YOUR_USERNAME/vince-monetra-assistant` (the HF-hosted page, with HF's own header/chrome — not what you want to embed) vs. `https://YOUR_USERNAME-vince-monetra-assistant.hf.space` (the **direct** app URL, no HF chrome — this is the one to embed). Find it on the Space page under **Embed this Space** → "Direct URL."
 
 Confirm whichever URL you use loads the chat UI cleanly (no host chrome) by opening it in a plain browser tab first.
 
@@ -82,7 +84,7 @@ Paste this directly into the website's HTML, wherever the chatbot should appear 
 
 ```html
 <iframe
-  src="https://YOUR_USERNAME-vince-ai-career-assistant.hf.space"
+  src="https://YOUR_USERNAME-vince-monetra-assistant.hf.space"
   title="Vince AI Career Assistant"
   style="width: 100%; height: 600px; border: none; border-radius: 12px;"
   loading="lazy"
@@ -107,7 +109,7 @@ A fixed-position button in the bottom-right corner that opens/closes a panel con
   <iframe
     id="vince-ai-iframe"
     src="about:blank"
-    data-src="https://YOUR_USERNAME-vince-ai-career-assistant.hf.space"
+    data-src="https://YOUR_USERNAME-vince-monetra-assistant.hf.space"
     title="Vince AI Career Assistant"
     loading="lazy"
   ></iframe>
@@ -237,7 +239,7 @@ A fixed-position button in the bottom-right corner that opens/closes a panel con
 
 Customization notes:
 
-- Replace `https://YOUR_USERNAME-vince-ai-career-assistant.hf.space` in `data-src` with the real direct URL from Step 1 — the Render URL works exactly the same way, just swap it in.
+- Replace `https://YOUR_USERNAME-vince-monetra-assistant.hf.space` in `data-src` with the real direct URL from Step 1 — the Render URL works exactly the same way, just swap it in.
 - Colors (`#1a1a2e`), size (`380px` × `600px`), and position (`bottom: 24px; right: 24px;`) are safe to change freely — they're isolated to this snippet's own IDs (`vince-ai-*`), so they won't collide with the rest of the site's CSS.
 - The 💬 emoji button is a placeholder — swap it for an `<img>`/SVG icon if the site has its own iconography.
 - The iframe's `src` is intentionally left as `about:blank` until first open (`data-src` holds the real URL) — this avoids waking the Space (and paying its cold-start latency) for every visitor who never opens the widget.

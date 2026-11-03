@@ -21,7 +21,7 @@ Retrieval is fully deterministic and testable without any LLM or network call. T
 ## Directory structure
 
 ```
-vince-ai-career-assistant/
+vince-monetra-assistant/
 ├── CLAUDE.md
 ├── PRD.md
 ├── ARCHITECTURE.md
@@ -46,13 +46,14 @@ vince-ai-career-assistant/
 │   └── prompt.py            # builds the grounded system + context prompt
 ├── llm/
 │   ├── __init__.py
-│   └── provider.py          # generate_response(question, context, history)
+│   └── provider.py          # generate_response(prompt: dict)
 └── tests/
     ├── test_loader.py
     ├── test_normalizer.py
     ├── test_retriever.py
     ├── test_prompt.py
-    └── test_chat.py
+    ├── test_chat.py
+    └── test_app.py
 ```
 
 `rag/normalizer.py` is a deliberate deviation from the original outline (which folded normalization into `retriever.py`) — kept separate for independent testability of synonym expansion.

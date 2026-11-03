@@ -30,6 +30,10 @@ Run with `pytest`. No live LLM calls except where explicitly mocked.
 - `chat.answer()` with a mocked LLM provider — verifies orchestration order and the no-confidence fallback path.
 - Confirms debug fields (scores, matched keywords, `resolution_method`) never appear in the string returned by `answer()`.
 
+**`test_app.py`**
+- `_extract_text()` correctly pulls plain text out of both a plain string and Gradio 6's content-parts list shape (including joining multiple text parts and ignoring non-text parts like images).
+- `_history_to_turn_pairs()` correctly converts Gradio's history (either content shape) into `(user, assistant)` tuples, skipping turns with non-text content.
+
 Do not proceed to LLM or Gradio implementation until all retrieval tests pass.
 
 ## Manual QA checklist (post-implementation, against the running Gradio app)

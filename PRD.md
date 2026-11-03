@@ -31,7 +31,7 @@ Plus reasonable wording variants of the above, and simple pronoun-based follow-u
 
 ## Out of scope for V1
 
-(see Section 50 of the original implementation guide for the full V2+ roadmap)
+(see Section 50 of `My AI Assistant Chatbot.md`, the original implementation guide at the repo root, for the full V2+ roadmap)
 
 - Embeddings / hybrid RAG
 - Agentic retrieval

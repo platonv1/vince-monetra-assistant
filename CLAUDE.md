@@ -42,6 +42,6 @@ Do not implement multiple layers in one prompt. Retrieval must be fully tested w
 
 ## Known open items (see RAG_DESIGN.md)
 
-- Scoring weights and confidence threshold are provisional until tuned against real knowledge-base content.
-- LLM provider not yet selected; `llm/provider.py` must stay swappable via the `LLM_PROVIDER` env var.
+- Scoring weights and confidence threshold: resolved — tuned against real knowledge-base content and the retriever test suite; no change was needed from the initial values.
+- LLM provider: resolved — Claude is the primary/production provider. Gemini is kept as the dev-time alternative via `llm/provider.py`'s `LLM_PROVIDER` env var, satisfying the "must stay swappable" rule above; it is not a second production option.
 - Streaming vs. synchronous LLM responses not yet decided (deferred to the Gradio implementation step).

@@ -64,7 +64,7 @@ Raised from an initial default of 2 to 3 during retriever testing: a genuinely c
 - **`followup_reference`** — normal scoring returned nothing, but the query contains a follow-up pronoun (static list: `he, his, him, it, that, those, them, ...`) and a `last_category` exists from a prior confidently-matched turn. That category's document is returned directly.
 - **`none`** — no match by either path; the chat controller returns the fixed fallback string without calling the LLM.
 
-**Known limitation**: only pronoun-style follow-ups are resolved this way. Generic continuations like "tell me more" are not — out of scope for V1, since the guide's own test matrix only requires pronoun resolution (e.g., "Which tools did **he** use?").
+**Known limitation**: only pronoun-style follow-ups are resolved this way. Generic continuations like "tell me more" are not — out of scope for V1, since `My AI Assistant Chatbot.md` (the original implementation guide at the repo root)'s own test matrix only requires pronoun resolution (e.g., "Which tools did **he** use?").
 
 ## Query normalization
 
